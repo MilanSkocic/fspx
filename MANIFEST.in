@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+include pyproject.toml
+recursive-include fspx *
+recursive-include docs *
+recursive-include tests *

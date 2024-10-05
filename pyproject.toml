@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fspx"
+version = "0.1.0"
+description = "A Sphinx extension for autodocumenting Modern Fortran code"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.6"
+keywords = ["sphinx", "fortran", "autodocumentation", "extension"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "fparser >= 0.1.4",
+    "sphinx >= 4.0.0",
+]
+
+[tool.setuptools]
