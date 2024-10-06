@@ -12,12 +12,12 @@ module math_utils
 
   contains
 
-  subroutine add_integers(a, b, result)
+  subroutine add_integers(a, b, c)
   !> Adds two integers and returns the result
     integer, intent(in) :: a   !> The first integer to add
     integer, intent(in) :: b   !> The second integer to add
-    integer, intent(out) :: result  !> The result of the addition
-    result = a + b
+    integer, intent(out) :: c  !> The result of the addition
+    c = a + b
   end subroutine add_integers
 
   elemental function multiply_reals(x, y) result(res)

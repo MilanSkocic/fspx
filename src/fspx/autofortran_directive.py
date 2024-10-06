@@ -29,7 +29,6 @@ class AutoFortranDirective(Directive):
         fortran_data = parse_fortran_file(file_path)
         
         section_node = nodes.section(ids=['fortran-api'])
-        section_node += nodes.title(text="Fortran API Documentation")
 
         # Document modules
         if fortran_data['modules']:
@@ -47,7 +46,7 @@ class AutoFortranDirective(Directive):
         if fortran_data['functions']:
             section_node += nodes.subtitle(text="Functions")
             for func in fortran_data['functions']:
-                section_node += self.create_signature("function", func['name'], func['doc'], func['args'])
+                section_node += self.create_signature("function", func['name'], func['doc'], func['args'], func['result'])
 
         # Document derived types
         if fortran_data['types']:
@@ -57,49 +56,60 @@ class AutoFortranDirective(Directive):
 
         return [section_node]
 
-    def create_signature(self, element_type, name, docstring=None, args=None):
+    def create_signature(self, element_type, name, docstring=None, args=None, result=None):
         """
-        Create a styled signature for subroutines, functions, and types, mimicking Python def/class styles.
-        The arguments will be listed with their attributes inline.
+        Create a styled signature for subroutines, functions, and types.
+        For functions, the result variable is displayed outside the parentheses.
         """
         # Create the description node using Sphinx-specific addnodes
         desc = addnodes.desc()
-        
+
         # Signature (header)
         sig = addnodes.desc_signature('', '')
         sig += addnodes.desc_name(text=f"{element_type} {name}")
-        
-        # If arguments are present (for subroutines/functions), display them
+
+        # Handle arguments within parentheses
         if args:
             params = addnodes.desc_parameterlist()
             for arg_name in args.keys():
                 param = addnodes.desc_parameter(text=f"{arg_name}")
                 params += param
             sig += params
+
+        # If it's a function, add the "result" clause after the parentheses
+        if result:
+            sig += addnodes.desc_addname(text=f" result({result['name']})")
         
         desc += sig
 
         # Content (body)
-        if docstring or args:
+        if docstring or args or result:
             content = addnodes.desc_content()
 
             # Add the docstring as the body content if present
             if docstring:
                 content += nodes.paragraph(text=docstring)
 
-            # Add argument descriptions and attributes in the same line
+            # Add argument descriptions and attributes
             if args:
                 arg_list = nodes.definition_list()
                 for arg_name, arg_info in args.items():
-                    # Argument name followed by attributes in the same line
                     term = nodes.term(text=f"{arg_name}: {arg_info['attributes']}")
-                    # Argument description
-                    definition = nodes.definition(text=arg_info['description'] or "No description provided.")
-                    # Combine the term (arg_name + attributes) and definition (description)
+                    definition = nodes.definition()
+                    definition += nodes.paragraph(text=arg_info['description'] or "No description provided.")
                     item = nodes.definition_list_item('', term, definition)
                     arg_list += item
                 content += arg_list
 
+            # Add result variable description and attributes
+            if result:
+                term = nodes.term(text=f"{result['name']}: {result['attributes']}")
+                definition = nodes.definition()
+                definition += nodes.paragraph(text=result['description'] or "No description provided.")
+                item = nodes.definition_list_item('', term, definition)
+                content += nodes.definition_list('', item)
+
             desc += content
 
         return desc
+

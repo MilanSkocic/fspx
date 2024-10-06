@@ -53,10 +53,21 @@ def parse_fortran_file(file_path):
         elif isinstance(stmt, Function_Stmt):
             docstring = extract_inline_comment(lines, stmt.item.span[0])
             args = extract_argument_docstrings(lines, stmt)
+            
+            # Extract the "result" clause if present
+            result_match = re.search(r'result\((\w+)\)', stmt.item.line)
+            result_var = None
+            if result_match:
+                result_var_name = result_match.group(1)
+                # Get the result variable's attributes and description
+                result_var = extract_result_attributes(lines[stmt.item.span[0]-1:], result_var_name)
+                result_var['name'] = result_var_name  # Add the name of the result variable
+
             fortran_data['functions'].append({
                 'name': str(stmt.children[1]),
                 'doc': docstring,
-                'args': args
+                'args': args,
+                'result': result_var  # Pass the result variable to the function data
             })
 
         # Collect derived types
@@ -100,15 +111,11 @@ def extract_docstring(comment_lines):
 def extract_argument_docstrings(lines, stmt):
     """
     Extract argument descriptions (docstrings) and attributes for subroutine/function arguments
-    from the Fortran source code.
-
-    1. Extract arguments from the subroutine or function signature.
-    2. Match the arguments with their type, intent, and attributes declared in subsequent lines.
+    from the Fortran source code. The result variable in Fortran functions will be handled separately.
     """
-    import re
     args_doc = {}
     
-    # Extract the list of arguments from the subroutine/function definition line
+    # Extract the list of arguments from the subroutine/function definition line (ignoring result variable)
     match = re.search(r'\((.*?)\)', stmt.item.line.strip())
     if not match:
         return args_doc  # No arguments found, return empty dictionary
@@ -116,16 +123,16 @@ def extract_argument_docstrings(lines, stmt):
     arg_list = match.group(1).split(',')
     arg_list = [arg.strip() for arg in arg_list if arg.strip()]  # Clean up whitespace
     
-    # Now parse the subsequent lines to find the type, intent, and any inline comment for each argument
+    # Parse subsequent lines for type, intent, and inline comments for each argument
     for line in lines:
         line = line.strip()
-
+        
         # Match a line like: "type(kind), intent(in) :: variable_name"
         match = re.search(r'::\s*(\w+)', line)
         if match:
             arg_name = match.group(1)
 
-            # Check if this argument is in the subroutine/function argument list
+            # Check if this argument is in the argument list (ignore result variable here)
             if arg_name in arg_list:
                 # Extract the attributes from the part before "::"
                 attributes = line.split("::")[0].strip()
@@ -141,3 +148,33 @@ def extract_argument_docstrings(lines, stmt):
                 }
     
     return args_doc
+
+
+def extract_result_attributes(lines, result_var):
+    """
+    Extract the attributes and description for the result variable in a Fortran function.
+    Look for its declaration in the subsequent lines and return the type and attributes.
+    """
+    for line in lines:
+        line = line.strip()
+
+        # Look for a line like: "type(kind), intent(out) :: result_var"
+        if result_var in line and '::' in line:
+            # Extract the attributes from the part before "::"
+            attributes = line.split("::")[0].strip()
+
+            # Extract any inline comment following the result variable declaration
+            comment_match = re.search(r'!>(.*)$', line)
+            description = comment_match.group(1).strip() if comment_match else "No description provided."
+            
+            # Return both the attributes and description
+            return {
+                'description': description,
+                'attributes': attributes
+            }
+
+    # Default return value if no specific declaration found
+    return {
+        'description': "No description provided.",
+        'attributes': "Unknown"
+    }
