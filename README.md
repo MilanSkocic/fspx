@@ -19,6 +19,11 @@ You can install the package using `pip`:
 pip install fspx
 ```
 
+If you want to install in developer mode for contributing, from the root folder:
+```bash
+pip install -e .
+```
+
 ## Usage
 To use the extension, add it to your Sphinx configuration (`conf.py`):
 ```python
