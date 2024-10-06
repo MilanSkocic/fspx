@@ -19,7 +19,7 @@ def parse_fortran_file(file_path):
         'functions': [],
         'types': []
     }
-
+    
     with open(file_path, 'r') as f:
         reader = FortranFileReader(f.name)
         parse_tree = parser(reader)
@@ -99,23 +99,45 @@ def extract_docstring(comment_lines):
 
 def extract_argument_docstrings(lines, stmt):
     """
-    Extract argument descriptions (docstrings) for subroutine/function arguments
-    from inline comments in the source code.
-    """
-    args_doc = {}
-    # Get the line number and content for the statement
-    for line_num, line in enumerate(lines):
-        # Look for argument declarations within the subroutine/function
-        if 'intent(' in line:  # This is a simple heuristic for argument declarations
-            arg_match = re.search(r'(\w+),?(\s*::\s*\w+)?', line)
-            if arg_match:
-                arg_name = arg_match.group(1)
-                # Extract the inline comment after the argument declaration (if any)
-                comment_match = re.search(r'!>(.*)$', line)
-                if comment_match:
-                    arg_doc = comment_match.group(1).strip()
-                    args_doc[arg_name] = arg_doc
-                else:
-                    args_doc[arg_name] = None  # No docstring available
+    Extract argument descriptions (docstrings) and attributes for subroutine/function arguments
+    from the Fortran source code.
 
+    1. Extract arguments from the subroutine or function signature.
+    2. Match the arguments with their type, intent, and attributes declared in subsequent lines.
+    """
+    import re
+    args_doc = {}
+    
+    # Extract the list of arguments from the subroutine/function definition line
+    match = re.search(r'\((.*?)\)', stmt.item.line.strip())
+    if not match:
+        return args_doc  # No arguments found, return empty dictionary
+    
+    arg_list = match.group(1).split(',')
+    arg_list = [arg.strip() for arg in arg_list if arg.strip()]  # Clean up whitespace
+    
+    # Now parse the subsequent lines to find the type, intent, and any inline comment for each argument
+    for line in lines:
+        line = line.strip()
+
+        # Match a line like: "type(kind), intent(in) :: variable_name"
+        match = re.search(r'::\s*(\w+)', line)
+        if match:
+            arg_name = match.group(1)
+
+            # Check if this argument is in the subroutine/function argument list
+            if arg_name in arg_list:
+                # Extract the attributes from the part before "::"
+                attributes = line.split("::")[0].strip()
+                
+                # Extract any inline comment following the argument declaration
+                comment_match = re.search(r'!>(.*)$', line)
+                arg_doc = comment_match.group(1).strip() if comment_match else "No description provided."
+                
+                # Store both the description and attributes
+                args_doc[arg_name] = {
+                    'description': arg_doc,
+                    'attributes': attributes
+                }
+    
     return args_doc

@@ -2,13 +2,15 @@ import os
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.util import logging
+from sphinx import addnodes  
 from .fortran_parser import parse_fortran_file
 
 logger = logging.getLogger(__name__)
 
 class AutoFortranDirective(Directive):
     """
-    A Sphinx directive to automatically document Fortran APIs with docstrings.
+    A Sphinx directive to automatically document Fortran APIs with docstrings,
+    subroutines, functions, and types styled similarly to Python.
     """
     has_content = True
     required_arguments = 1  # The path to the Fortran file
@@ -33,68 +35,71 @@ class AutoFortranDirective(Directive):
         if fortran_data['modules']:
             section_node += nodes.subtitle(text="Modules")
             for mod in fortran_data['modules']:
-                paragraph = nodes.paragraph()
-                paragraph += nodes.strong(text=f"Module: {mod['name']}")
-                if mod['doc']:
-                    paragraph += nodes.paragraph(text=mod['doc'])
-                section_node += paragraph
-        
+                section_node += self.create_signature("module", mod['name'], mod['doc'])
+
         # Document subroutines
         if fortran_data['subroutines']:
             section_node += nodes.subtitle(text="Subroutines")
             for subroutine in fortran_data['subroutines']:
-                paragraph = nodes.paragraph()
-                paragraph += nodes.strong(text=f"Subroutine: {subroutine['name']}")
-                if subroutine['doc']:
-                    paragraph += nodes.paragraph(text=subroutine['doc'])
-                
-                # Display arguments and their docstrings
-                if subroutine['args']:
-                    arg_list = nodes.bullet_list()
-                    for arg_name, arg_doc in subroutine['args'].items():
-                        item = nodes.list_item()
-                        item += nodes.strong(text=arg_name)
-                        if arg_doc:
-                            item += nodes.paragraph(text=arg_doc)
-                        else:
-                            item += nodes.paragraph(text="No description provided.")
-                        arg_list += item
-                    paragraph += arg_list
+                section_node += self.create_signature("subroutine", subroutine['name'], subroutine['doc'], subroutine['args'])
 
-                section_node += paragraph
-        
         # Document functions
         if fortran_data['functions']:
             section_node += nodes.subtitle(text="Functions")
             for func in fortran_data['functions']:
-                paragraph = nodes.paragraph()
-                paragraph += nodes.strong(text=f"Function: {func['name']}")
-                if func['doc']:
-                    paragraph += nodes.paragraph(text=func['doc'])
-                
-                # Display arguments and their docstrings
-                if func['args']:
-                    arg_list = nodes.bullet_list()
-                    for arg_name, arg_doc in func['args'].items():
-                        item = nodes.list_item()
-                        item += nodes.strong(text=arg_name)
-                        if arg_doc:
-                            item += nodes.paragraph(text=arg_doc)
-                        else:
-                            item += nodes.paragraph(text="No description provided.")
-                        arg_list += item
-                    paragraph += arg_list
-
-                section_node += paragraph
+                section_node += self.create_signature("function", func['name'], func['doc'], func['args'])
 
         # Document derived types
         if fortran_data['types']:
             section_node += nodes.subtitle(text="Derived Types")
             for derived_type in fortran_data['types']:
-                paragraph = nodes.paragraph()
-                paragraph += nodes.strong(text=f"Type: {derived_type['name']}")
-                if derived_type['doc']:
-                    paragraph += nodes.paragraph(text=derived_type['doc'])
-                section_node += paragraph
+                section_node += self.create_signature("type", derived_type['name'], derived_type['doc'])
 
         return [section_node]
+
+    def create_signature(self, element_type, name, docstring=None, args=None):
+        """
+        Create a styled signature for subroutines, functions, and types, mimicking Python def/class styles.
+        The arguments will be listed with their attributes inline.
+        """
+        # Create the description node using Sphinx-specific addnodes
+        desc = addnodes.desc()
+        
+        # Signature (header)
+        sig = addnodes.desc_signature('', '')
+        sig += addnodes.desc_name(text=f"{element_type} {name}")
+        
+        # If arguments are present (for subroutines/functions), display them
+        if args:
+            params = addnodes.desc_parameterlist()
+            for arg_name in args.keys():
+                param = addnodes.desc_parameter(text=f"{arg_name}")
+                params += param
+            sig += params
+        
+        desc += sig
+
+        # Content (body)
+        if docstring or args:
+            content = addnodes.desc_content()
+
+            # Add the docstring as the body content if present
+            if docstring:
+                content += nodes.paragraph(text=docstring)
+
+            # Add argument descriptions and attributes in the same line
+            if args:
+                arg_list = nodes.definition_list()
+                for arg_name, arg_info in args.items():
+                    # Argument name followed by attributes in the same line
+                    term = nodes.term(text=f"{arg_name}: {arg_info['attributes']}")
+                    # Argument description
+                    definition = nodes.definition(text=arg_info['description'] or "No description provided.")
+                    # Combine the term (arg_name + attributes) and definition (description)
+                    item = nodes.definition_list_item('', term, definition)
+                    arg_list += item
+                content += arg_list
+
+            desc += content
+
+        return desc
