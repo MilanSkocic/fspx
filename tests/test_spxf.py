@@ -36,11 +36,11 @@ end module math_utils'''
         os.remove('test.f90')
         self.assertIn('modules', parsed_data)
         self.assertEqual(parsed_data['modules'][0]['name'], 'math_utils')
-        self.assertEqual(parsed_data['modules'][0]['doc'], 'This module provides utilities for mathematical operations ')
+        self.assertEqual(parsed_data['modules'][0]['doc'], 'This module provides utilities for mathematical operations')
         self.assertEqual(parsed_data['subroutines'][0]['name'], 'add_integers')
-        self.assertEqual(parsed_data['subroutines'][0]['doc'], 'Adds two integers and returns the result but the comment continues in the next line ')
+        self.assertEqual(parsed_data['subroutines'][0]['doc'], 'Adds two integers and returns the result but the comment continues in the next line')
         self.assertEqual(parsed_data['functions'][0]['name'], 'multiply_reals')
-        self.assertEqual(parsed_data['functions'][0]['doc'], 'Multiplies two real numbers and returns the result ')
+        self.assertEqual(parsed_data['functions'][0]['doc'], 'Multiplies two real numbers and returns the result')
 
 if __name__ == '__main__':
     unittest.main()

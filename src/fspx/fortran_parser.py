@@ -87,15 +87,7 @@ def extract_inline_comment(lines, line_num):
     if line_num < 0 or line_num >= len(lines):
         return None  # Out of bounds check
 
-    l = line_num
-    comment = ''
-    while lines[l].strip().startswith('!>'):
-        comment += lines[l].strip()[2:].strip()+' ' # Remove the !> marker
-        l += 1
-    if comment != '':
-        return comment
-
-    return None
+    return extract_docstring(lines[line_num:])
 
 def extract_docstring(comment_lines):
     """
@@ -108,8 +100,10 @@ def extract_docstring(comment_lines):
         if stripped_line.startswith('!>'):
             # Remove the !> marker and any leading/trailing whitespace
             doc_lines.append(stripped_line[2:].strip())
+        else:
+            break
 
-    return "\n".join(doc_lines) if doc_lines else None
+    return " ".join(doc_lines) if doc_lines else None
 
 
 def extract_argument_docstrings(lines, stmt):
