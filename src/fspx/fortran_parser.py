@@ -87,10 +87,14 @@ def extract_inline_comment(lines, line_num):
     if line_num < 0 or line_num >= len(lines):
         return None  # Out of bounds check
 
-    comment_line = lines[line_num].strip()
+    l = line_num
+    comment = ''
+    while lines[l].strip().startswith('!>'):
+        comment += lines[l].strip()[2:].strip()+' ' # Remove the !> marker
+        l += 1
+    if comment != '':
+        return comment
 
-    if comment_line.startswith('!>'):
-        return comment_line[2:].strip()  # Remove the !> marker
     return None
 
 def extract_docstring(comment_lines):
