@@ -36,6 +36,17 @@ class AutoFortranDirective(Directive):
             for mod in fortran_data['modules']:
                 section_node += self.create_signature("module", mod['name'], mod['doc'])
 
+        # Document derived types
+        if fortran_data['types']:
+            section_node += nodes.subtitle(text="Derived Types")
+            for derived_type in fortran_data['types']:
+                section_node += self.create_signature("type", 
+                    derived_type['name'], 
+                    derived_type['doc'], 
+                    members=derived_type['members'], 
+                    procedures=derived_type['procedures']
+                )
+
         # Document subroutines
         if fortran_data['subroutines']:
             section_node += nodes.subtitle(text="Subroutines")
@@ -47,17 +58,6 @@ class AutoFortranDirective(Directive):
             section_node += nodes.subtitle(text="Functions")
             for func in fortran_data['functions']:
                 section_node += self.create_signature("function", func['name'], func['doc'], func['args'], func['result'])
-
-        # Document derived types
-        if fortran_data['types']:
-            section_node += nodes.subtitle(text="Derived Types")
-            for derived_type in fortran_data['types']:
-                section_node += self.create_signature("type", 
-                    derived_type['name'], 
-                    derived_type['doc'], 
-                    members=derived_type['members'], 
-                    procedures=derived_type['procedures']
-                )
 
         return [section_node]
 
