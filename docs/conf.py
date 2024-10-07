@@ -19,7 +19,8 @@ release = '0.1.0'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'fspx'
+    'sphinx.ext.mathjax',
+    'fspx',
 ]
 
 templates_path = ['_templates']

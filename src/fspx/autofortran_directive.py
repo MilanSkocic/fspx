@@ -88,7 +88,7 @@ class AutoFortranDirective(Directive):
         desc += sig
 
         # Content (body)
-        if docstring or args or result:
+        if docstring or args or result or result or members or procedures:
             content = addnodes.desc_content()
 
             # Add the docstring as the body content if present
@@ -134,6 +134,7 @@ class AutoFortranDirective(Directive):
                     procedure_list += procedure_item
                 content += procedure_list
 
+            content += nodes.math(text='') # adding this empty node seems to force sphinx to try and processes math expressions ...
             desc += content
 
         return desc
