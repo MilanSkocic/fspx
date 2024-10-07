@@ -73,10 +73,15 @@ def parse_fortran_file(file_path):
         # Collect derived types
         elif isinstance(stmt, Derived_Type_Stmt):
             docstring = extract_inline_comment(lines, stmt.item.span[0])
+            derived_type_name = str(stmt.children[1])
+            members, procedures = extract_derived_type_members_and_procedures(lines, stmt.item.span[0])
             fortran_data['types'].append({
-                'name': str(stmt.children[1]),
-                'doc': docstring
+                'name': derived_type_name,
+                'doc': docstring,
+                'members': members,
+                'procedures': procedures
             })
+            
 
     return fortran_data
 
@@ -176,3 +181,38 @@ def extract_result_attributes(lines, result_var):
         'description': "No description provided.",
         'attributes': "Unknown"
     }
+
+def extract_derived_type_members_and_procedures(lines, start_line):
+    """
+    Extract the members and type-bound procedures of a derived type.
+    """
+    members = []
+    procedures = []
+    inside_contains = False
+
+    for i, line in enumerate(lines[start_line:], start=start_line):
+        stripped_line = line.strip()
+
+        # Detect the "contains" statement, which marks the start of type-bound procedures
+        if stripped_line.lower() == "contains":
+            inside_contains = True
+            continue
+
+        if inside_contains:
+            # We are now processing type-bound procedures
+            procedure_match = re.match(r'\s*(procedure)\s*::\s*(\w+)', stripped_line)
+            if procedure_match:
+                procedures.append({
+                    'name': procedure_match.group(2),
+                    'attributes': procedure_match.group(1)
+                })
+        else:
+            # We are processing derived type members
+            member_match = re.match(r'\s*(\w+)\s*::\s*(\w+)', stripped_line)
+            if member_match:
+                members.append({
+                    'name': member_match.group(2),
+                    'attributes': member_match.group(1)
+                })
+
+    return members, procedures

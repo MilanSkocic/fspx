@@ -52,11 +52,16 @@ class AutoFortranDirective(Directive):
         if fortran_data['types']:
             section_node += nodes.subtitle(text="Derived Types")
             for derived_type in fortran_data['types']:
-                section_node += self.create_signature("type", derived_type['name'], derived_type['doc'])
+                section_node += self.create_signature("type", 
+                    derived_type['name'], 
+                    derived_type['doc'], 
+                    members=derived_type['members'], 
+                    procedures=derived_type['procedures']
+                )
 
         return [section_node]
 
-    def create_signature(self, element_type, name, docstring=None, args=None, result=None):
+    def create_signature(self, element_type, name, docstring=None, args=None, result=None, members=None, procedures=None):
         """
         Create a styled signature for subroutines, functions, and types.
         For functions, the result variable is displayed outside the parentheses.
@@ -108,6 +113,26 @@ class AutoFortranDirective(Directive):
                 definition += nodes.paragraph(text=result['description'] or "No description provided.")
                 item = nodes.definition_list_item('', term, definition)
                 content += nodes.definition_list('', item)
+
+            # Add derived type members
+            if members:
+                member_list = nodes.definition_list()
+                for member in members:
+                    term = nodes.term(text=f"{member['name']}: {member['attributes']}")
+                    definition = nodes.definition()
+                    definition += nodes.paragraph(text=member.get('description', 'No description provided.'))
+                    item = nodes.definition_list_item('', term, definition)
+                    member_list += item
+                content += member_list
+
+            # Add type-bound procedures
+            if procedures:
+                procedure_list = nodes.bullet_list()
+                for procedure in procedures:
+                    procedure_item = nodes.list_item()
+                    procedure_item += nodes.strong(text=f"{procedure['name']}")
+                    procedure_list += procedure_item
+                content += procedure_list
 
             desc += content
 
