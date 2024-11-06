@@ -41,6 +41,7 @@ end module math_utils'''
         self.assertEqual(parsed_data['subroutines'][0]['doc'], 'Adds two integers and returns the result but the comment continues in the next line')
         self.assertEqual(parsed_data['functions'][0]['name'], 'multiply_reals')
         self.assertEqual(parsed_data['functions'][0]['doc'], 'Multiplies two real numbers and returns the result')
+        self.assertEqual(parsed_data['functions'][0]['attributes'], 'elemental')
 
 if __name__ == '__main__':
     unittest.main()

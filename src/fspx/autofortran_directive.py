@@ -51,17 +51,28 @@ class AutoFortranDirective(Directive):
         if fortran_data['subroutines']:
             section_node += nodes.subtitle(text="Subroutines")
             for subroutine in fortran_data['subroutines']:
-                section_node += self.create_signature("subroutine", subroutine['name'], subroutine['doc'], subroutine['args'])
+                section_node += self.create_signature("subroutine", 
+                    subroutine['name'], 
+                    subroutine['doc'], 
+                    subroutine['args'],
+                    attributes=subroutine['attributes']
+                )
 
         # Document functions
         if fortran_data['functions']:
             section_node += nodes.subtitle(text="Functions")
             for func in fortran_data['functions']:
-                section_node += self.create_signature("function", func['name'], func['doc'], func['args'], func['result'])
+                section_node += self.create_signature("function", 
+                    func['name'], 
+                    func['doc'], 
+                    func['args'], 
+                    func['result'],
+                    attributes=func['attributes']
+                )
 
         return [section_node]
 
-    def create_signature(self, element_type, name, docstring=None, args=None, result=None, members=None, procedures=None):
+    def create_signature(self, element_type, name, docstring=None, args=None, result=None, members=None, procedures=None, attributes=None):
         """
         Create a styled signature for subroutines, functions, and types.
         For functions, the result variable is displayed outside the parentheses.
@@ -71,7 +82,9 @@ class AutoFortranDirective(Directive):
 
         # Signature (header)
         sig = addnodes.desc_signature('', '')
-        sig += addnodes.desc_name(text=f"{element_type} {name}")
+        # Include attributes (e.g., "pure", "elemental") before the element type
+        attr_text = f"{attributes} " if attributes else ""
+        sig += addnodes.desc_name(text=f"{attr_text}{element_type} {name}")
 
         # Handle arguments within parentheses
         if args:
@@ -88,7 +101,7 @@ class AutoFortranDirective(Directive):
         desc += sig
 
         # Content (body)
-        if docstring or args or result or result or members or procedures:
+        if docstring or args or result or members or procedures:
             content = addnodes.desc_content()
 
             # Add the docstring as the body content if present
@@ -138,4 +151,3 @@ class AutoFortranDirective(Directive):
             desc += content
 
         return desc
-

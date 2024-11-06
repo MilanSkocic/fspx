@@ -15,7 +15,7 @@ module mod_example
 
 contains
 
-subroutine my_sub(x,y)
+elemental subroutine my_sub(x,y)
 !> mysub docstrings
 !> \[
 !> x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}

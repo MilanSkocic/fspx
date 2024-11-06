@@ -43,17 +43,19 @@ def parse_fortran_file(file_path):
         elif isinstance(stmt, Subroutine_Stmt):
             docstring = extract_inline_comment(lines, stmt.item.span[0])
             args = extract_argument_docstrings(lines, stmt)
+            attributes = extract_procedure_attributes(stmt.item.line)
             fortran_data['subroutines'].append({
                 'name': str(stmt.children[1]),
                 'doc': docstring,
-                'args': args
+                'args': args,
+                'attributes': attributes
             })
 
         # Collect functions
         elif isinstance(stmt, Function_Stmt):
             docstring = extract_inline_comment(lines, stmt.item.span[0])
             args = extract_argument_docstrings(lines, stmt)
-            
+            attributes = extract_procedure_attributes(stmt.item.line)
             # Extract the "result" clause if present
             result_match = re.search(r'result\((\w+)\)', stmt.item.line)
             result_var = None
@@ -67,7 +69,8 @@ def parse_fortran_file(file_path):
                 'name': str(stmt.children[1]),
                 'doc': docstring,
                 'args': args,
-                'result': result_var  # Pass the result variable to the function data
+                'result': result_var,  # Pass the result variable to the function data
+                'attributes': attributes
             })
 
         # Collect derived types
@@ -216,3 +219,16 @@ def extract_derived_type_members_and_procedures(lines, start_line):
                 })
 
     return members, procedures
+
+def extract_procedure_attributes(line):
+    """
+    Extract attributes such as 'pure', 'elemental', 'recursive' from a subroutine or function declaration line.
+    """
+    attributes = []
+    if "pure" in line:
+        attributes.append("pure")
+    if "elemental" in line:
+        attributes.append("elemental")
+    if "recursive" in line:
+        attributes.append("recursive")
+    return ", ".join(attributes) if attributes else None
