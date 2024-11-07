@@ -35,6 +35,15 @@ class AutoFortranDirective(Directive):
             for mod in fortran_data['modules']:
                 section_node += self.create_signature("module", mod['name'], mod['doc'])
 
+        # Document submodules
+        if fortran_data['submodules']:
+            for submod in fortran_data['submodules']:
+                section_node += self.create_signature("submodule", 
+                    submod['name'],
+                    submod['doc'],
+                    parent=submod['parent']
+                )
+
         # Document derived types
         if fortran_data['types']:
             for derived_type in fortran_data['types']:
@@ -68,7 +77,15 @@ class AutoFortranDirective(Directive):
 
         return [section_node]
 
-    def create_signature(self, element_type, name, docstring=None, args=None, result=None, members=None, procedures=None, attributes=None):
+    def create_signature(self, element_type, name, 
+                         docstring=None, 
+                         args=None, 
+                         result=None, 
+                         members=None, 
+                         procedures=None, 
+                         attributes=None,
+                         parent=None
+                         ):
         """
         Create a styled signature for subroutines, functions, and types.
         For functions, the result variable is displayed outside the parentheses.
@@ -80,7 +97,8 @@ class AutoFortranDirective(Directive):
         sig = addnodes.desc_signature('', '')
         # Include attributes (e.g., "pure", "elemental") before the element type
         attr_text = f"{attributes} " if attributes else ""
-        sig += addnodes.desc_name(text=f"{attr_text}{element_type} {name}")
+        parent_text = f"({parent}) " if parent else "" # parent module for submodules
+        sig += addnodes.desc_name(text=f"{attr_text}{element_type} {parent_text}{name}")
 
         # Handle arguments within parentheses
         if args:

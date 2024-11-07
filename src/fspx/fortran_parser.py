@@ -3,6 +3,7 @@ from fparser.common.readfortran import FortranFileReader
 from fparser.two.parser import ParserFactory
 from fparser.two.utils import walk
 from fparser.two.Fortran2003 import Module_Stmt, Subroutine_Stmt, Function_Stmt, Derived_Type_Stmt
+from fparser.two.Fortran2008 import Submodule_Stmt
 
 # Initialize Fortran 2008 parser
 parser = ParserFactory().create(std="f2008")
@@ -15,6 +16,7 @@ def parse_fortran_file(file_path):
     docstring = None
     fortran_data = {
         'modules': [],
+        'submodules': [],
         'subroutines': [],
         'functions': [],
         'types': []
@@ -35,7 +37,16 @@ def parse_fortran_file(file_path):
         if isinstance(stmt, Module_Stmt):
             docstring = extract_inline_comment(lines, stmt.item.span[0])
             fortran_data['modules'].append({
-                'name': str(stmt.children[1]),
+                'name': stmt.items[1].string,
+                'doc': docstring
+            })
+
+        # Collect submodules
+        elif isinstance(stmt, Submodule_Stmt):
+            docstring = extract_inline_comment(lines, stmt.item.span[0])
+            fortran_data['submodules'].append({
+                'name': stmt.items[1].string,
+                'parent': stmt.items[0].string,
                 'doc': docstring
             })
 
@@ -45,7 +56,7 @@ def parse_fortran_file(file_path):
             args = extract_argument_docstrings(lines, stmt)
             attributes = extract_procedure_attributes(stmt.item.line)
             fortran_data['subroutines'].append({
-                'name': str(stmt.children[1]),
+                'name': stmt.items[1].string,
                 'doc': docstring,
                 'args': args,
                 'attributes': attributes
@@ -66,7 +77,7 @@ def parse_fortran_file(file_path):
                 result_var['name'] = result_var_name  # Add the name of the result variable
 
             fortran_data['functions'].append({
-                'name': str(stmt.children[1]),
+                'name': stmt.items[1].string,
                 'doc': docstring,
                 'args': args,
                 'result': result_var,  # Pass the result variable to the function data
@@ -231,4 +242,6 @@ def extract_procedure_attributes(line):
         attributes.append("elemental")
     if "recursive" in line:
         attributes.append("recursive")
-    return ", ".join(attributes) if attributes else None
+    if "module" in line:
+        attributes.append("module")
+    return " ".join(attributes) if attributes else None
