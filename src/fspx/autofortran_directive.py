@@ -107,10 +107,6 @@ class AutoFortranDirective(Directive):
                 param = addnodes.desc_parameter(text=f"{arg_name}")
                 params += param
             sig += params
-
-        # If it's a function, add the "result" clause after the parentheses
-        if result:
-            sig += addnodes.desc_addname(text=f" result({result['name']})")
         
         desc += sig
 
@@ -128,18 +124,10 @@ class AutoFortranDirective(Directive):
                 for arg_name, arg_info in args.items():
                     term = nodes.term(text=f"{arg_name}: {arg_info['attributes']}")
                     definition = nodes.definition()
-                    definition += nodes.paragraph(text=arg_info['description'] or "No description provided.")
+                    definition += nodes.paragraph(text=arg_info['description'])
                     item = nodes.definition_list_item('', term, definition)
                     arg_list += item
                 content += arg_list
-
-            # Add result variable description and attributes
-            if result:
-                term = nodes.term(text=f"{result['name']}: {result['attributes']}")
-                definition = nodes.definition()
-                definition += nodes.paragraph(text=result['description'] or "No description provided.")
-                item = nodes.definition_list_item('', term, definition)
-                content += nodes.definition_list('', item)
 
             # Add derived type members
             if members:
@@ -147,7 +135,6 @@ class AutoFortranDirective(Directive):
                 for member in members:
                     term = nodes.term(text=f"{member['name']}: {member['attributes']}")
                     definition = nodes.definition()
-                    definition += nodes.paragraph(text=member.get('description', 'No description provided.'))
                     item = nodes.definition_list_item('', term, definition)
                     member_list += item
                 content += member_list

@@ -1,9 +1,12 @@
 import re
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.parser import ParserFactory
-from fparser.two.utils import walk
+from fparser.two.utils import walk, get_child
+import fparser.two.Fortran2003 as fp2003
+import fparser.two.Fortran2008 as fp2008
+from fparser.two.Fortran2003 import Module, Derived_Type_Def, Subroutine_Subprogram, Function_Subprogram, Specification_Part, Implicit_Part, Comment
 from fparser.two.Fortran2003 import Module_Stmt, Subroutine_Stmt, Function_Stmt, Derived_Type_Stmt
-from fparser.two.Fortran2008 import Submodule_Stmt
+from fparser.two.Fortran2008 import Submodule, Submodule_Stmt
 
 # Initialize Fortran 2008 parser
 parser = ParserFactory().create(std="f2008")
@@ -23,225 +26,137 @@ def parse_fortran_file(file_path):
     }
     
     with open(file_path, 'r') as f:
-        reader = FortranFileReader(f.name)
+        reader = FortranFileReader(f.name, ignore_comments=False)
         parse_tree = parser(reader)
 
         # Read the file line-by-line for docstring extraction
         lines = f.readlines()
 
-    # Walk through the AST and associate constructs with docstrings
-    for stmt in walk(parse_tree):
-        stmt_class = type(stmt).__name__
-
+    for node in walk(parse_tree):
         # Collect modules
-        if isinstance(stmt, Module_Stmt):
-            docstring = extract_inline_comment(lines, stmt.item.span[0])
+        if isinstance(node, Module):
+            content = get_child( node , fp2003.Specification_Part ).content
+            docstring = extract_comments( content[0].children )
             fortran_data['modules'].append({
-                'name': stmt.items[1].string,
+                'name': node.children[0].children[1].string,
                 'doc': docstring
             })
 
         # Collect submodules
-        elif isinstance(stmt, Submodule_Stmt):
-            docstring = extract_inline_comment(lines, stmt.item.span[0])
+        if isinstance(node, Submodule):
+            content = get_child( node , fp2003.Specification_Part ).content
+            docstring = extract_comments( content[0].children )
             fortran_data['submodules'].append({
-                'name': stmt.items[1].string,
-                'parent': stmt.items[0].string,
+                'name': node.children[0].children[1].string,
+                'parent': node.children[0].children[0].children[0].string,
                 'doc': docstring
             })
-
+        
         # Collect subroutines
-        elif isinstance(stmt, Subroutine_Stmt):
-            docstring = extract_inline_comment(lines, stmt.item.span[0])
-            args = extract_argument_docstrings(lines, stmt)
-            attributes = extract_procedure_attributes(stmt.item.line)
+        if isinstance(node, Subroutine_Subprogram):
+            content = get_child( node , fp2003.Specification_Part ).content
+            docstring = extract_comments( content[0].children )
+            args = extract_arguments( content[1:] )
+            prefix = get_child( get_child( node , fp2003.Subroutine_Stmt ), fp2003.Prefix )
+            attributes = ''
+            if prefix:
+                attributes = prefix.children[0].string.lower()
             fortran_data['subroutines'].append({
-                'name': stmt.items[1].string,
+                'name': get_child( get_child( node , fp2003.Subroutine_Stmt ), fp2003.Name ).string,
                 'doc': docstring,
                 'args': args,
                 'attributes': attributes
             })
-
+        
         # Collect functions
-        elif isinstance(stmt, Function_Stmt):
-            docstring = extract_inline_comment(lines, stmt.item.span[0])
-            args = extract_argument_docstrings(lines, stmt)
-            attributes = extract_procedure_attributes(stmt.item.line)
-            # Extract the "result" clause if present
-            result_match = re.search(r'result\((\w+)\)', stmt.item.line)
-            result_var = None
-            if result_match:
-                result_var_name = result_match.group(1)
-                # Get the result variable's attributes and description
-                result_var = extract_result_attributes(lines[stmt.item.span[0]-1:], result_var_name)
-                result_var['name'] = result_var_name  # Add the name of the result variable
+        if isinstance(node, Function_Subprogram):
+            content = get_child( node , fp2003.Specification_Part ).content
+            docstring = extract_comments( content[0].children )
+            args = extract_arguments( content[1:] )
+            prefix = get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Prefix )
+            attributes = ''
+            if prefix:
+                attributes = prefix.children[0].string.lower()
+            result_var = get_child( get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Suffix ) , fp2003.Name ).string
 
             fortran_data['functions'].append({
-                'name': stmt.items[1].string,
+                'name': get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Name ).string,
                 'doc': docstring,
                 'args': args,
-                'result': result_var,  # Pass the result variable to the function data
+                'result': result_var,
                 'attributes': attributes
             })
 
         # Collect derived types
-        elif isinstance(stmt, Derived_Type_Stmt):
-            docstring = extract_inline_comment(lines, stmt.item.span[0])
-            derived_type_name = str(stmt.children[1])
-            members, procedures = extract_derived_type_members_and_procedures(lines, stmt.item.span[0])
+        if isinstance(node, Derived_Type_Def):
+            content = node.content
+            docstring = extract_comments( content )
+            members, procedures = extract_derived_type( node )
+            derived_type_name = get_child( get_child( node, fp2003.Derived_Type_Stmt ), fp2003.Type_Name ).string
             fortran_data['types'].append({
                 'name': derived_type_name,
                 'doc': docstring,
                 'members': members,
                 'procedures': procedures
             })
-            
 
     return fortran_data
 
-def extract_inline_comment(lines, line_num):
+def extract_comments(node):
     """
-    Extract a docstring from the line above a Fortran statement if it starts with !>.
+    Recover docstrings from Comment nodes
     """
-    if line_num < 0 or line_num >= len(lines):
-        return None  # Out of bounds check
-
-    return extract_docstring(lines[line_num:])
-
-def extract_docstring(comment_lines):
-    """
-    Extract docstrings from a list of comment lines.
-    Only lines starting with !> are considered part of the docstring.
-    """
+    from fparser.two.Fortran2003 import Comment
     doc_lines = []
-    for line in comment_lines:
-        stripped_line = line.strip()
-        if stripped_line.startswith('!>'):
-            # Remove the !> marker and any leading/trailing whitespace
-            doc_lines.append(stripped_line[2:].strip())
-        else:
-            break
-
+    for child in node:
+        if isinstance(child,Comment):
+            if child.children[0].startswith('!>'):
+                doc_lines.append(child.children[0][2:].strip())
     return " ".join(doc_lines) if doc_lines else None
 
-
-def extract_argument_docstrings(lines, stmt):
+def extract_arguments(list):
     """
-    Extract argument descriptions (docstrings) and attributes for subroutine/function arguments
-    from the Fortran source code. The result variable in Fortran functions will be handled separately.
+    
     """
     args_doc = {}
     
-    # Extract the list of arguments from the subroutine/function definition line (ignoring result variable)
-    match = re.search(r'\((.*?)\)', stmt.item.line.strip())
-    if not match:
-        return args_doc  # No arguments found, return empty dictionary
-    
-    arg_list = match.group(1).split(',')
-    arg_list = [arg.strip() for arg in arg_list if arg.strip()]  # Clean up whitespace
-    
-    # Parse subsequent lines for type, intent, and inline comments for each argument
-    for line in lines:
-        line = line.strip()
-        
-        # Match a line like: "type(kind), intent(in) :: variable_name"
-        match = re.search(r'::\s*(\w+)', line)
-        if match:
-            arg_name = match.group(1)
-
-            # Check if this argument is in the argument list (ignore result variable here)
-            if arg_name in arg_list:
-                # Extract the attributes from the part before "::"
-                attributes = line.split("::")[0].strip()
-                
-                # Extract any inline comment following the argument declaration
-                comment_match = re.search(r'!>(.*)$', line)
-                arg_doc = comment_match.group(1).strip() if comment_match else "No description provided."
-                
-                # Store both the description and attributes
-                args_doc[arg_name] = {
-                    'description': arg_doc,
-                    'attributes': attributes
+    for idx in range(0,len(list)//2):
+        docs = extract_comments( list[2*idx+1].children )
+        intrinsic_type = get_child( list[2*idx] , fp2003.Intrinsic_Type_Spec ).string
+        Attr_List = get_child( list[2*idx] , fp2008.Attr_Spec_List )
+        Entity_List = get_child( list[2*idx] , fp2003.Entity_Decl_List )
+        for arg in Entity_List.children:
+            args_doc[arg.string] = {
+                    'description': docs,
+                    'attributes': intrinsic_type # attributes
                 }
     
     return args_doc
 
-
-def extract_result_attributes(lines, result_var):
+def extract_derived_type(node):
     """
-    Extract the attributes and description for the result variable in a Fortran function.
-    Look for its declaration in the subsequent lines and return the type and attributes.
-    """
-    for line in lines:
-        line = line.strip()
-
-        # Look for a line like: "type(kind), intent(out) :: result_var"
-        if result_var in line and '::' in line:
-            # Extract the attributes from the part before "::"
-            attributes = line.split("::")[0].strip()
-
-            # Extract any inline comment following the result variable declaration
-            comment_match = re.search(r'!>(.*)$', line)
-            description = comment_match.group(1).strip() if comment_match else "No description provided."
-            
-            # Return both the attributes and description
-            return {
-                'description': description,
-                'attributes': attributes
-            }
-
-    # Default return value if no specific declaration found
-    return {
-        'description': "No description provided.",
-        'attributes': "Unknown"
-    }
-
-def extract_derived_type_members_and_procedures(lines, start_line):
-    """
-    Extract the members and type-bound procedures of a derived type.
+    
     """
     members = []
     procedures = []
-    inside_contains = False
 
-    for i, line in enumerate(lines[start_line:], start=start_line):
-        stripped_line = line.strip()
-
-        # Detect the "contains" statement, which marks the start of type-bound procedures
-        if stripped_line.lower() == "contains":
-            inside_contains = True
-            continue
-
-        if inside_contains:
-            # We are now processing type-bound procedures
-            procedure_match = re.match(r'\s*(procedure)\s*::\s*(\w+)', stripped_line)
-            if procedure_match:
-                procedures.append({
-                    'name': procedure_match.group(2),
-                    'attributes': procedure_match.group(1)
+    components = get_child( node , fp2003.Component_Part )
+    for component in components.children:
+        attribute = get_child( component , fp2003.Intrinsic_Type_Spec ).string
+        attr_spec_list = get_child( component , fp2008.Component_Attr_Spec_List )
+        if attr_spec_list:
+            Attr = get_child( attr_spec_list, fp2003.Component_Attr_Spec ).string
+            attribute = attribute + ', ' + Attr.lower()
+        name = get_child(get_child(get_child( 
+               component , fp2003.Component_Decl_List ), 
+               fp2003.Component_Decl ),
+               fp2003.Name ).string
+        members.append({
+                    'name': name,
+                    'attributes': attribute
                 })
-        else:
-            # We are processing derived type members
-            member_match = re.match(r'\s*(\w+)\s*::\s*(\w+)', stripped_line)
-            if member_match:
-                members.append({
-                    'name': member_match.group(2),
-                    'attributes': member_match.group(1)
-                })
-
+        
+    type_Bound_procedures = get_child( node , fp2003.Type_Bound_Procedure_Part )
+    # TODO: unroll Specific_Binding and Generic_Binding
+     
     return members, procedures
-
-def extract_procedure_attributes(line):
-    """
-    Extract attributes such as 'pure', 'elemental', 'recursive' from a subroutine or function declaration line.
-    """
-    attributes = []
-    if "pure" in line:
-        attributes.append("pure")
-    if "elemental" in line:
-        attributes.append("elemental")
-    if "recursive" in line:
-        attributes.append("recursive")
-    if "module" in line:
-        attributes.append("module")
-    return " ".join(attributes) if attributes else None
