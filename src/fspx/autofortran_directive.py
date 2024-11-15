@@ -17,6 +17,7 @@ class AutoFortranDirective(Directive):
     
     def run(self):
         env = self.state.document.settings.env
+        docmarker = env.app.config.fspx_docstring_character 
         file_path = self.arguments[0]
         
         if not os.path.isabs(file_path):
@@ -26,7 +27,7 @@ class AutoFortranDirective(Directive):
             logger.warning(f"File {file_path} does not exist")
             return []
         
-        fortran_data = parse_fortran_file(file_path)
+        fortran_data = parse_fortran_file(file_path, docmarker)
         
         section_node = nodes.section(ids=['fortran-api'])
 
