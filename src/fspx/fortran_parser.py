@@ -11,7 +11,7 @@ from fparser.two.Fortran2008 import Submodule, Submodule_Stmt
 # Initialize Fortran 2008 parser
 parser = ParserFactory().create(std="f2008")
 
-def parse_fortran_file(file_path, docmarker="!>"):
+def parse_fortran_file(file_path, docmarker:str="!>"):
     """
     Parse a Fortran file and extract the code structure (modules, subroutines, functions, types),
     including docstrings and argument descriptions from inline comments.
@@ -102,7 +102,7 @@ def parse_fortran_file(file_path, docmarker="!>"):
 
     return fortran_data
 
-def extract_comments(node, docmarker="!>"):
+def extract_comments(node, docmarker:str="!>"):
     """
     Recover docstrings from Comment nodes
     """
@@ -114,7 +114,7 @@ def extract_comments(node, docmarker="!>"):
                 doc_lines.append(child.children[0][2:].strip())
     return " ".join(doc_lines) if doc_lines else None
 
-def extract_arguments(list, docmarker="!>"):
+def extract_arguments(list, docmarker:str="!>"):
     """
     
     """
@@ -124,11 +124,14 @@ def extract_arguments(list, docmarker="!>"):
         docs = extract_comments( list[2*idx+1].children, docmarker)
         intrinsic_type = get_child( list[2*idx] , fp2003.Intrinsic_Type_Spec ).string
         Attr_List = get_child( list[2*idx] , fp2008.Attr_Spec_List )
+        attrs = intrinsic_type
+        if Attr_List:
+            attrs = intrinsic_type + ', ' + Attr_List.string
         Entity_List = get_child( list[2*idx] , fp2003.Entity_Decl_List )
         for arg in Entity_List.children:
             args_doc[arg.string] = {
                     'description': docs,
-                    'attributes': intrinsic_type # attributes
+                    'attributes': attrs # attributes
                 }
     
     return args_doc
