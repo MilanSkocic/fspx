@@ -111,7 +111,13 @@ def extract_comments(node, docmarker:str="!>"):
     for child in node:
         if isinstance(child,Comment):
             if child.children[0].startswith(docmarker):
-                doc_lines.append(child.children[0][2:].strip())
+                # multi-line docstring
+                # empty lines are replaced by \n
+                c = child.children[0][2:].strip()
+                if len(c) == 0:
+                    doc_lines.append("\n")
+                else:
+                    doc_lines.append(child.children[0][2:].strip())
     return " ".join(doc_lines) if doc_lines else None
 
 def extract_arguments(list, docmarker:str="!>"):
@@ -133,7 +139,6 @@ def extract_arguments(list, docmarker:str="!>"):
                     'description': docs,
                     'attributes': attrs # attributes
                 }
-    
     return args_doc
 
 def extract_derived_type(node):
