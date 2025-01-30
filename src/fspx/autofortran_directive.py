@@ -104,11 +104,18 @@ class AutoFortranDirective(Directive):
         # Handle arguments within parentheses
         if args:
             params = addnodes.desc_parameterlist()
-            for arg_name in args.keys():
-                param = addnodes.desc_parameter(text=f"{arg_name}")
-                params += param
+            # Add only arguments with the attribute intent(in, out or inout).
+            for arg_name, arg_info in args.items():
+                if "intent" in arg_info["attributes"]:
+                    param = addnodes.desc_parameter(text=f"{arg_name}")
+                    params += param
             sig += params
         
+        # Add result such as function_signature(args)->result
+        if result:
+            res = addnodes.desc_returns(text=f"{result:s}")
+            sig += res
+
         desc += sig
 
         # Content (body)
@@ -117,17 +124,20 @@ class AutoFortranDirective(Directive):
 
             # Add the docstring as the body content if present
             if docstring:
-                content += nodes.paragraph(text=docstring)
+                for line in docstring.split("\n"):
+                    content += nodes.paragraph(text=line)
 
             # Add argument descriptions and attributes
             if args:
                 arg_list = nodes.definition_list()
                 for arg_name, arg_info in args.items():
-                    term = nodes.term(text=f"{arg_name}: {arg_info['attributes']}")
-                    definition = nodes.definition()
-                    definition += nodes.paragraph(text=arg_info['description'])
-                    item = nodes.definition_list_item('', term, definition)
-                    arg_list += item
+                    # Add only arguments with the attirbute intent (in, out, inout) or if it is the result.
+                    if ("intent" in arg_info["attributes"]) or (arg_name == result):
+                        term = nodes.term(text=f"{arg_name}: {arg_info['attributes']}")
+                        definition = nodes.definition()
+                        definition += nodes.paragraph(text=arg_info['description'])
+                        item = nodes.definition_list_item('', term, definition)
+                        arg_list += item
                 content += arg_list
 
             # Add derived type members
