@@ -104,14 +104,14 @@ class AutoFortranDirective(Directive):
         # Handle arguments within parentheses
         if args:
             params = addnodes.desc_parameterlist()
-            # Add only arguments with the attribute intent(in, out or inout).
+            # Add only arguments with the attribute intent.
             for arg_name, arg_info in args.items():
                 if "intent" in arg_info["attributes"]:
                     param = addnodes.desc_parameter(text=f"{arg_name}")
                     params += param
             sig += params
         
-        # Add result such as function_signature(args)->result
+        # Add result 
         if result:
             res = addnodes.desc_returns(text=f"{result:s}")
             sig += res
