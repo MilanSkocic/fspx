@@ -134,9 +134,6 @@ def extract_arguments(list, docmarker:str="!>"):
         attrs = intrinsic_type
         if Attr_List:
             attrs = intrinsic_type + ', ' + Attr_List.string
-        # filter variables with no intent declaration
-        if not 'intent' in attrs:
-            continue
         Entity_List = get_child( list[2*idx] , fp2003.Entity_Decl_List )
         for arg in Entity_List.children:
             args_doc[arg.string] = {
