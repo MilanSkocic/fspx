@@ -1,5 +1,4 @@
 import re
-from typing import Dict
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.parser import ParserFactory
 from fparser.two.utils import walk, get_child
@@ -35,26 +34,34 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
 
     for node in walk(parse_tree):
         # Collect modules
+        default_scope = "public"
         if isinstance(node, Module):
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
+            default_scope = extract_module_scope(node)
+            public = extract_module_scopes(node, "public")
             fortran_data['modules'].append({
                 'name': node.children[0].children[1].string,
-                'doc': docstring
+                'doc': docstring,
+                'public': public,
+                'scope': scope,
             })
 
         # Collect submodules
         if isinstance(node, Submodule):
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
+            scope = extract_module_scope(node)
             fortran_data['submodules'].append({
                 'name': node.children[0].children[1].string,
                 'parent': node.children[0].children[0].children[0].string,
-                'doc': docstring
+                'doc': docstring,
+                'scope': scope,
             })
         
         # Collect subroutines
         if isinstance(node, Subroutine_Subprogram):
+            name = get_child( get_child( node , fp2003.Subroutine_Stmt ), fp2003.Name ).string
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
             args = extract_arguments( content[1:], docmarker )
@@ -62,15 +69,26 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             attributes = ''
             if prefix:
                 attributes = prefix.children[0].string.lower()
+            scope = extract_module_scope(node)
+            s = extract_module_scopes(node, "public")
+            for i in s:
+                if name == i:
+                    scope = "public"
+            s = extract_module_scopes(node, "private")
+            for i in s:
+                if name == i:
+                    scope = "private"
             fortran_data['subroutines'].append({
-                'name': get_child( get_child( node , fp2003.Subroutine_Stmt ), fp2003.Name ).string,
+                'name': name,
                 'doc': docstring,
                 'args': args,
-                'attributes': attributes
+                'attributes': attributes,
+                'scope': scope,
             })
         
         # Collect functions
         if isinstance(node, Function_Subprogram):
+            name = get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Name ).string
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
             args = extract_arguments( content[1:], docmarker )
@@ -79,13 +97,22 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             if prefix:
                 attributes = prefix.children[0].string.lower()
             result_var = get_child( get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Suffix ) , fp2003.Name ).string
-
+            scope = extract_module_scope(node)
+            s = extract_module_scopes(node, "public")
+            for i in s:
+                if name == i:
+                    scope = "public"
+            s = extract_module_scopes(node, "private")
+            for i in s:
+                if name == i:
+                    scope = "private"
             fortran_data['functions'].append({
-                'name': get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Name ).string,
+                'name': name,
                 'doc': docstring,
                 'args': args,
                 'result': result_var,
-                'attributes': attributes
+                'attributes': attributes,
+                'scope':scope,
             })
 
         # Collect derived types
@@ -94,23 +121,52 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             docstring = extract_comments( content , docmarker)
             members, procedures = extract_derived_type( node )
             derived_type_name = get_child( get_child( node, fp2003.Derived_Type_Stmt ), fp2003.Type_Name ).string
+            scope = extract_module_scope(node)
             fortran_data['types'].append({
                 'name': derived_type_name,
                 'doc': docstring,
                 'members': members,
-                'procedures': procedures
+                'procedures': procedures,
+                'scope':scope
             })
 
     return fortran_data
+
+def extract_module_scope(node):
+    """
+    Get the scope of the module i.e. public or private.
+    """
+    scope = "public"
+    stmt = get_child(node , fp2003.Specification_Part)
+    for child in stmt.children:
+        print(child.children)
+        if isinstance(child, fp2003.Access_Stmt):
+            if child.children[1] is None:
+                scope = child.children[0].lower()
+    return scope
+
+
+def extract_module_scopes(node, what):
+    """
+    Parse the explicit public or private access statements.
+    """
+    access_stmt = []
+    stmt = get_child( node , fp2003.Specification_Part )
+    for child in stmt.children:
+        if isinstance(child, fp2003.Access_Stmt):
+            if (child.children[0].lower().startswith(what)) and (child.children[1] is None):
+                value = child.children[1].string
+                access_stmt.append(value)
+    return access_stmt
+
 
 def extract_comments(node, docmarker:str="!>"):
     """
     Recover docstrings from Comment nodes
     """
-    from fparser.two.Fortran2003 import Comment
     doc_lines = []
     for child in node:
-        if isinstance(child,Comment):
+        if isinstance(child, fp2003.Comment):
             if child.children[0].startswith(docmarker):
                 # multi-line docstring
                 # empty lines are replaced by \n
@@ -126,7 +182,6 @@ def extract_arguments(list, docmarker:str="!>"):
     
     """
     args_doc = {}
-    
     for idx in range(0,len(list)//2):
         docs = extract_comments( list[2*idx+1].children, docmarker)
         intrinsic_type = get_child( list[2*idx] , fp2003.Intrinsic_Type_Spec ).string
@@ -169,3 +224,6 @@ def extract_derived_type(node):
     # TODO: unroll Specific_Binding and Generic_Binding
      
     return members, procedures
+
+
+

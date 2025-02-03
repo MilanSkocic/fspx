@@ -39,11 +39,12 @@ class AutoFortranDirective(Directive):
         # Document submodules
         if fortran_data['submodules']:
             for submod in fortran_data['submodules']:
-                section_node += self.create_signature("submodule", 
-                    submod['name'],
-                    submod['doc'],
-                    parent=submod['parent']
-                )
+                if submod["scope"] == "public":
+                    section_node += self.create_signature("submodule", 
+                        submod['name'],
+                        submod['doc'],
+                        parent=submod['parent']
+                    )
 
         # Document derived types
         if fortran_data['types']:
@@ -58,23 +59,25 @@ class AutoFortranDirective(Directive):
         # Document subroutines
         if fortran_data['subroutines']:
             for subroutine in fortran_data['subroutines']:
-                section_node += self.create_signature("subroutine", 
-                    subroutine['name'], 
-                    subroutine['doc'], 
-                    subroutine['args'],
-                    attributes=subroutine['attributes']
-                )
+                if subroutine["scope"] == "public":
+                    section_node += self.create_signature("subroutine", 
+                        subroutine['name'], 
+                        subroutine['doc'], 
+                        subroutine['args'],
+                        attributes=subroutine['attributes']
+                    )
 
         # Document functions
         if fortran_data['functions']:
             for func in fortran_data['functions']:
-                section_node += self.create_signature("function", 
-                    func['name'], 
-                    func['doc'], 
-                    func['args'], 
-                    func['result'],
-                    attributes=func['attributes']
-                )
+                if func["scope"] == "public":
+                    section_node += self.create_signature("function", 
+                        func['name'], 
+                        func['doc'], 
+                        func['args'], 
+                        func['result'],
+                        attributes=func['attributes'], scope=func["scope"]
+                    )
 
         return [section_node]
 
@@ -85,7 +88,8 @@ class AutoFortranDirective(Directive):
                          members=None, 
                          procedures=None, 
                          attributes=None,
-                         parent=None
+                         parent=None,
+                         scope=None
                          ):
         """
         Create a styled signature for subroutines, functions, and types.
@@ -99,7 +103,7 @@ class AutoFortranDirective(Directive):
         # Include attributes (e.g., "pure", "elemental") before the element type
         attr_text = f"{attributes} " if attributes else ""
         parent_text = f"({parent}) " if parent else "" # parent module for submodules
-        sig += addnodes.desc_name(text=f"{attr_text}{element_type} {parent_text}{name}")
+        sig += addnodes.desc_name(text=f"{scope}{attr_text}{element_type} {parent_text}{name}")
 
         # Handle arguments within parentheses
         if args:
