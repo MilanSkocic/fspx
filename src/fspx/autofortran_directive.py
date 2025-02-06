@@ -95,6 +95,9 @@ class AutoFortranDirective(Directive):
         """
         # Create the description node using Sphinx-specific addnodes
         desc = addnodes.desc()
+        # if not defined, the pdf builder won't work.
+        desc["objtype"] = ""
+        desc["desctype"] = ""
 
         # Signature (header)
         sig = addnodes.desc_signature('', '')
