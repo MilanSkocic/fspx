@@ -39,12 +39,11 @@ class AutoFortranDirective(Directive):
         # Document submodules
         if fortran_data['submodules']:
             for submod in fortran_data['submodules']:
-                if submod["scope"] == "public":
-                    section_node += self.create_signature("submodule", 
-                        submod['name'],
-                        submod['doc'],
-                        parent=submod['parent']
-                    )
+                section_node += self.create_signature("submodule", 
+                    submod['name'],
+                    submod['doc'],
+                    parent=submod['parent']
+                )
 
         # Document derived types
         if fortran_data['types']:
@@ -76,7 +75,7 @@ class AutoFortranDirective(Directive):
                         func['doc'], 
                         func['args'], 
                         func['result'],
-                        attributes=func['attributes'], scope=func["scope"]
+                        attributes=func['attributes'],
                     )
 
         return [section_node]
@@ -89,7 +88,6 @@ class AutoFortranDirective(Directive):
                          procedures=None, 
                          attributes=None,
                          parent=None,
-                         scope=None
                          ):
         """
         Create a styled signature for subroutines, functions, and types.
@@ -103,7 +101,7 @@ class AutoFortranDirective(Directive):
         # Include attributes (e.g., "pure", "elemental") before the element type
         attr_text = f"{attributes} " if attributes else ""
         parent_text = f"({parent}) " if parent else "" # parent module for submodules
-        sig += addnodes.desc_name(text=f"{scope}{attr_text}{element_type} {parent_text}{name}")
+        sig += addnodes.desc_name(text=f"{attr_text}{element_type} {parent_text}{name}")
 
         # Handle arguments within parentheses
         if args:

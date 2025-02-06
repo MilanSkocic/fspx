@@ -32,31 +32,32 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
         # Read the file line-by-line for docstring extraction
         lines = f.readlines()
 
+    default_scope = "public"
+    public_scope = []
+    private_scope = []
     for node in walk(parse_tree):
         # Collect modules
-        default_scope = "public"
         if isinstance(node, Module):
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
             default_scope = extract_module_scope(node)
-            public = extract_module_scopes(node, "public")
+            public_scope = extract_module_scopes(node, "public")
+            private_scope = extract_module_scopes(node, "private")
             fortran_data['modules'].append({
                 'name': node.children[0].children[1].string,
                 'doc': docstring,
-                'public': public,
-                'scope': scope,
+                'scope': default_scope,
             })
+            print(public_scope)
 
         # Collect submodules
         if isinstance(node, Submodule):
             content = get_child( node , fp2003.Specification_Part ).content
             docstring = extract_comments( content[0].children , docmarker)
-            scope = extract_module_scope(node)
             fortran_data['submodules'].append({
                 'name': node.children[0].children[1].string,
                 'parent': node.children[0].children[0].children[0].string,
                 'doc': docstring,
-                'scope': scope,
             })
         
         # Collect subroutines
@@ -67,15 +68,13 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             args = extract_arguments( content[1:], docmarker )
             prefix = get_child( get_child( node , fp2003.Subroutine_Stmt ), fp2003.Prefix )
             attributes = ''
+            scope = default_scope
             if prefix:
                 attributes = prefix.children[0].string.lower()
-            scope = extract_module_scope(node)
-            s = extract_module_scopes(node, "public")
-            for i in s:
+            for i in public_scope:
                 if name == i:
                     scope = "public"
-            s = extract_module_scopes(node, "private")
-            for i in s:
+            for i in private_scope:
                 if name == i:
                     scope = "private"
             fortran_data['subroutines'].append({
@@ -97,13 +96,11 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             if prefix:
                 attributes = prefix.children[0].string.lower()
             result_var = get_child( get_child( get_child( node , fp2003.Function_Stmt ), fp2003.Suffix ) , fp2003.Name ).string
-            scope = extract_module_scope(node)
-            s = extract_module_scopes(node, "public")
-            for i in s:
+            scope = default_scope
+            for i in public_scope:
                 if name == i:
                     scope = "public"
-            s = extract_module_scopes(node, "private")
-            for i in s:
+            for i in private_scope:
                 if name == i:
                     scope = "private"
             fortran_data['functions'].append({
@@ -139,7 +136,6 @@ def extract_module_scope(node):
     scope = "public"
     stmt = get_child(node , fp2003.Specification_Part)
     for child in stmt.children:
-        print(child.children)
         if isinstance(child, fp2003.Access_Stmt):
             if child.children[1] is None:
                 scope = child.children[0].lower()
@@ -154,9 +150,13 @@ def extract_module_scopes(node, what):
     stmt = get_child( node , fp2003.Specification_Part )
     for child in stmt.children:
         if isinstance(child, fp2003.Access_Stmt):
-            if (child.children[0].lower().startswith(what)) and (child.children[1] is None):
-                value = child.children[1].string
-                access_stmt.append(value)
+            if (child.children[0].lower().startswith(what)) and (child.children[1] is not None):
+                value = child.children[1].string.split(",")
+                if len(value) == 1:
+                    access_stmt.append(value[0])
+                elif len(value) > 1:
+                    for elmt in value:
+                        access_stmt.append(elmt)
     return access_stmt
 
 
