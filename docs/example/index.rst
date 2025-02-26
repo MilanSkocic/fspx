@@ -11,3 +11,4 @@ Rendered
 =====================
 
 .. autofortran:: example/example.f90
+    :private:

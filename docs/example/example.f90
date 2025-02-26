@@ -13,6 +13,8 @@ module mod_example
         real, allocatable :: x(:)
     end type
 
+public :: f1
+
 contains
 
 pure elemental function f1(x)result(r)
