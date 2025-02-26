@@ -4,6 +4,7 @@ from docutils.parsers.rst import Directive
 from sphinx.util import logging
 from sphinx import addnodes  
 from .fortran_parser_ford import parse_fortran_file
+from docutils.parsers.rst import directives
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,19 @@ class AutoFortranDirective(Directive):
     """
     has_content = True
     required_arguments = 1  # The path to the Fortran file
+    optional_arguments = 0
+    option_spec = {'private': directives.flag}
+
     
     def run(self):
         env = self.state.document.settings.env
         docmarker = env.app.config.fspx_docstring_character 
         file_path = self.arguments[0]
+        
+        private = False
+        if "private" in self.options.keys():
+            if self.options["private"] is None:
+                private = True
         
         if not os.path.isabs(file_path):
             file_path = os.path.join(env.srcdir, file_path)
@@ -34,7 +43,7 @@ class AutoFortranDirective(Directive):
         # Document modules
         if fortran_data['modules']:
             for mod in fortran_data['modules']:
-                section_node += self.create_signature("module", mod['name'], mod['doc'])
+                    section_node += self.create_signature("module", mod['name'], mod['doc'])
 
         # Document submodules
         if fortran_data['submodules']:
@@ -48,33 +57,36 @@ class AutoFortranDirective(Directive):
         # Document derived types
         if fortran_data['types']:
             for derived_type in fortran_data['types']:
-                section_node += self.create_signature("type", 
-                    derived_type['name'], 
-                    derived_type['doc'], 
-                    members=derived_type['members'], 
-                    procedures=derived_type['procedures']
-                )
+                if (derived_type["permission"] == "public") or (private == True): 
+                    section_node += self.create_signature("type", 
+                        derived_type['name'], 
+                        derived_type['doc'], 
+                        members=derived_type['members'], 
+                        procedures=derived_type['procedures']
+                    )
 
         # Document subroutines
         if fortran_data['subroutines']:
             for subroutine in fortran_data['subroutines']:
-                section_node += self.create_signature("subroutine", 
-                    subroutine['name'], 
-                    subroutine['doc'], 
-                    subroutine['args'],
-                    attributes=subroutine['attributes']
-                )
+                if (subroutine["permission"] == "public") or (private == True): 
+                    section_node += self.create_signature("subroutine", 
+                        subroutine['name'], 
+                        subroutine['doc'], 
+                        subroutine['args'],
+                        attributes=subroutine['attributes']
+                    )
 
         # Document functions
         if fortran_data['functions']:
             for func in fortran_data['functions']:
-                section_node += self.create_signature("function", 
-                    func['name'], 
-                    func['doc'], 
-                    func['args'], 
-                    func['result'],
-                    attributes=func['attributes']
-                )
+                if (func["permission"] == "public") or (private == True): 
+                    section_node += self.create_signature("function", 
+                        func['name'], 
+                        func['doc'], 
+                        func['args'], 
+                        func['result'],
+                        attributes=func['attributes']
+                    )
 
         return [section_node]
 
