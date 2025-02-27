@@ -1,7 +1,8 @@
 """Parse Fortran code with FORD as backend."""
 
 from ford.sourceform import ProjectSettings
-from ford.sourceform import FortranSourceFile, FortranModule, FortranFunction, FortranSubroutine, FortranBase
+from ford.sourceform import FortranModule, FortranSubmodule
+from ford.sourceform import FortranSourceFile, FortranSubroutine, FortranFunction, FortranBase, FortranType
 
 def get_args(f: FortranFunction | FortranSubroutine):
     args = {}
@@ -39,6 +40,13 @@ def get_doc(item: FortranBase):
             doc.append(i)
     return "".join(doc)
 
+def get_members(item: FortranType):
+    members = []
+    for i in item.variables:
+        d = {"name": i.name, "attributes": f"{i.vartype:s}"}
+        members.append(d)
+    return members
+
 def parse_fortran_file(file_path, docmarker:str="!>"):
 
     reader = FortranSourceFile(file_path, ProjectSettings({"p":"p"}))
@@ -58,6 +66,15 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
                  "permission": i.permission
                 }
             )
+
+        if isinstance(i, FortranSubmodule):
+            fortran_data["submodules"].append({
+                "name": i.name,
+                "doc": get_doc(i),
+                "permission": i.permission
+            }
+            )
+
         if isinstance(i, FortranFunction):
             args = get_args(i)
             ret = get_func_return(i)
@@ -79,7 +96,6 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
         
         if isinstance(i, FortranSubroutine):
             args = get_args(i)
-            print(i.doc_list)
             fortran_data["functions"].append(
                 {
                     "name": i.name,
@@ -90,6 +106,18 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
                     "permission": i.permission
                 }
             )
+
+        if isinstance(i, FortranType):
+            print(dir(i))
+            print(i.variables)
+            fortran_data["types"].append({
+                "name":i.name, 
+                "doc": get_doc(i),
+                "permission": i.permission,
+                "members": get_members(i),
+                "procedures": [{"name":"", "attributes": ""}]
+            }
+        )
 
 
     return fortran_data
