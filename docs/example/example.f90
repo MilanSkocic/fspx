@@ -11,11 +11,19 @@ module mod_example
         !! my_type docstrings
         integer :: a = 1
         real, allocatable :: x(:)
+        contains
+            procedure :: to_real
     end type
 
 public :: f1
 
 contains
+
+function to_real(x)result(r)
+    !! to real doc
+    real, intent(in) :: x !! input
+    real :: r !! result
+end function
 
 pure elemental function f1(x)result(r)
     !! f1 docstring.
