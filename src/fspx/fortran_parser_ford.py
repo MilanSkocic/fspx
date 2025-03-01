@@ -47,6 +47,14 @@ def get_members(item: FortranType):
         members.append(d)
     return members
 
+def get_boundprocs(item: FortranType):
+    procedures = []
+    for i in item.boundprocs:
+        attribs = f""
+        d = {"name": i.name, "attributes": attribs}
+        procedures.append(d)
+    return procedures
+
 def parse_fortran_file(file_path, docmarker:str="!>"):
 
     reader = FortranSourceFile(file_path, ProjectSettings({"p":"p"}))
@@ -108,14 +116,12 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
             )
 
         if isinstance(i, FortranType):
-            print(dir(i))
-            print(i.variables)
             fortran_data["types"].append({
                 "name":i.name, 
                 "doc": get_doc(i),
                 "permission": i.permission,
                 "members": get_members(i),
-                "procedures": [{"name":"", "attributes": ""}]
+                "procedures": get_boundprocs(i)
             }
         )
 
