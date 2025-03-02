@@ -2,24 +2,26 @@
 
 from ford.sourceform import ProjectSettings
 from ford.sourceform import FortranModule, FortranSubmodule
-from ford.sourceform import FortranSourceFile, FortranSubroutine, FortranFunction, FortranBase, FortranType
+from ford.sourceform import FortranSourceFile, FortranSubroutine, FortranFunction, FortranBase, FortranType, FortranVariable
 
 def get_args(f: FortranFunction | FortranSubroutine):
     args = {}
     f.attribs
     for i in f.args:
-        attributes = f"{i.vartype:s}, intent({i.intent:s})"
+        args[i.name] = {"description": "\n".join(i.doc_list), "attributes": i.full_declaration}
+        if i.parameter:
+            args[i.name]["attributes"] += f", parameter"
+        if i.intent:
+            args[i.name]["attributes"] += f", intent({i.intent:s})"
         if i.optional:
-            attributes += ", optional"
-        args[i.name] = {"description": "\n".join(i.doc_list), "attributes": attributes}
+            args[i.name]["attributes"] += f", optional"
 
     return args
 
 def get_return_arg(f: FortranFunction):
     ret={}
     i = f.retvar
-    attributes = f"{i.vartype:s}"
-    ret[i.name] = {"description": "", "attributes": attributes}
+    ret[i.name] = {"description": "", "attributes": i.full_declaration}
 
     return ret
 
@@ -43,15 +45,14 @@ def get_doc(item: FortranBase):
 def get_members(item: FortranType):
     members = []
     for i in item.variables:
-        d = {"name": i.name, "attributes": f"{i.vartype:s}"}
+        d = {"name": i.name, "attributes": i.full_declaration}
         members.append(d)
     return members
 
 def get_boundprocs(item: FortranType):
     procedures = []
     for i in item.boundprocs:
-        attribs = f""
-        d = {"name": i.name, "attributes": attribs}
+        d = {"name": i.name, "attributes": i.full_declaration}
         procedures.append(d)
     return procedures
 
@@ -85,6 +86,7 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
 
         if isinstance(i, FortranFunction):
             args = get_args(i)
+            print(args)
             ret = get_func_return(i)
             ret_arg = get_return_arg(i)
             args.update(ret_arg)
@@ -104,7 +106,7 @@ def parse_fortran_file(file_path, docmarker:str="!>"):
         
         if isinstance(i, FortranSubroutine):
             args = get_args(i)
-            fortran_data["functions"].append(
+            fortran_data["subroutines"].append(
                 {
                     "name": i.name,
                     "args": args,
