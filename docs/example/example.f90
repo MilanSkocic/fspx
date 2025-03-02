@@ -6,24 +6,27 @@ module mod_example
     !! \( ax^2 + bx + c = 0 \)
     implicit none
     private
-    
+
     type, public :: my_type
         !! my_type docstrings
         integer :: a = 1
-        real, allocatable :: x(:)
+        real, allocatable :: x(:) !! Data
+        real, dimension(:), pointer :: tmp !! Temporary data
+        real, pointer :: y !! Scalar Value
         contains
-            procedure :: to_real
+            procedure :: print
     end type
 
 public :: f1
+public :: A
 
 contains
 
-function to_real(x)result(r)
-    !! to real doc
-    real, intent(in) :: x !! input
+subroutine print(this)
+    !! Docstring
+    class(my_type), intent(in) :: this
     real :: r !! result
-end function
+end subroutine
 
 pure elemental function f1(x)result(r)
     !! f1 docstring.
