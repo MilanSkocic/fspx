@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
-    "fparser >= 0.1.4",
+    "ford >= 7.0.0",
     "sphinx >= 4.0.0",
 ]
 

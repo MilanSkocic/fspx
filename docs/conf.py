@@ -26,7 +26,7 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
+fspx_docstring_character = "!>"
 
 
 # -- Options for HTML output -------------------------------------------------

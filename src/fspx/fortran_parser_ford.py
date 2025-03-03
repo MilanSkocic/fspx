@@ -62,7 +62,8 @@ def get_type_procedures(item: FortranType):
 def parse_fortran_file(file_path, docmarker:str="!>"):
     """Parse Fortran code."""
     
-    reader = FortranSourceFile(file_path, ProjectSettings({"p":"p"}))
+    reader = FortranSourceFile(file_path, ProjectSettings( predocmark =docmarker[0],
+                                                           docmark = docmarker[1] ))
 
     fortran_data = {
         'modules': [],
