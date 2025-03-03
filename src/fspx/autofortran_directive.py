@@ -3,7 +3,7 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.util import logging
 from sphinx import addnodes  
-from .fortran_parser_ford import parse_fortran_file
+from .fortran_parser import parse_fortran_file
 from docutils.parsers.rst import directives
 
 logger = logging.getLogger(__name__)

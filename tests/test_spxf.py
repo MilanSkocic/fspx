@@ -1,6 +1,6 @@
 import unittest
 import os
-from fspx.fortran_parser_ford import parse_fortran_file
+from fspx.fortran_parser import parse_fortran_file
 
 class TestFortranAutodoc(unittest.TestCase):
 
