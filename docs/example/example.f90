@@ -1,9 +1,16 @@
+
+
+!@ Preceding documentation for the module.
+!# Preceding documentation for the module with alternate marker
+!#
 module mod_example
     !> mod_example docstrings
     !> still some documentation
     !>
     !> yet more lines
     !> \( ax^2 + bx + c = 0 \)
+    !*
+    !* Alternate documentation
     implicit none
     private
 

@@ -32,7 +32,7 @@ end module math_utils'''
         with open('test.f90', 'w') as f:
             f.write(fortran_code)
         
-        parsed_data = parse_fortran_file('test.f90')
+        parsed_data = parse_fortran_file('test.f90', docmarker=">*@#")
         os.remove('test.f90')
         self.assertIn('modules', parsed_data)
         self.assertEqual(parsed_data['modules'][0]['name'], 'math_utils')
