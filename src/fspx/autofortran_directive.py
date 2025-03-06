@@ -22,7 +22,6 @@ class AutoFortranDirective(Directive):
     def run(self):
         env = self.state.document.settings.env
         docmarker = env.app.config.fspx_docstring_character 
-        print("docmarker", docmarker, "end")
         file_path = self.arguments[0]
         
         private = False

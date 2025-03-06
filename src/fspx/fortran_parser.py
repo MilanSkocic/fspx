@@ -62,19 +62,18 @@ def get_type_procedures(item: FortranType):
 def parse_fortran_file(file_path, docmarker:str="!*>|"):
     r"""Parse Fortran code."""
      
+    settings = ProjectSettings(file_path)
     if docmarker:
         if len(docmarker) == 4:
             docmark, docmark_alt, predocmark, predocmark_alt = docmarker
-            pjs = ProjectSettings(docmark=docmark, 
+            settings = ProjectSettings(docmark=docmark, 
                            docmark_alt=docmark_alt, 
                            predocmark=predocmark, 
                            predocmark_alt=predocmark_alt)
         else:
             raise ValueError("docmarker must a be an string of 4 characters defining the docmarker, docmarker_alt, predocmark, predocmark_alt.")
-    else:
-        pjs = ProjectSettings(file_path)
     
-    reader = FortranSourceFile(file_path, settings=pjs)
+    reader = FortranSourceFile(file_path, settings=settings)
 
     fortran_data = {
         'modules': [],
