@@ -6,12 +6,14 @@ class TestFortranAutodoc(unittest.TestCase):
 
     def test_basic_parsing(self):
         fortran_code = '''
+!@ Preceding doc for module.
 module math_utils
   !> This module provides utilities for mathematical operations
   implicit none
 
   contains
 
+  !# Preceding doc.
   subroutine add_integers(a, b, c)
     !> Adds two integers and returns the result
     !> but the comment continues in the next line
@@ -36,9 +38,9 @@ end module math_utils'''
         os.remove('test.f90')
         self.assertIn('modules', parsed_data)
         self.assertEqual(parsed_data['modules'][0]['name'], 'math_utils')
-        self.assertEqual(parsed_data['modules'][0]['doc'], ' This module provides utilities for mathematical operations')
+        self.assertEqual(parsed_data['modules'][0]['doc'], ' Preceding doc for module. This module provides utilities for mathematical operations')
         self.assertEqual(parsed_data['subroutines'][0]['name'], 'add_integers')
-        self.assertEqual(parsed_data['subroutines'][0]['doc'], ' Adds two integers and returns the result but the comment continues in the next line')
+        self.assertEqual(parsed_data['subroutines'][0]['doc'], ' Preceding doc. Adds two integers and returns the result but the comment continues in the next line')
         self.assertEqual(parsed_data['functions'][0]['name'], 'multiply_reals')
         self.assertEqual(parsed_data['functions'][0]['doc'], ' Multiplies two real numbers and returns the result')
         self.assertEqual(parsed_data['functions'][0]['attributes'], 'elemental')
