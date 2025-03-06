@@ -26,7 +26,10 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-fspx_docstring_character = ">*@#"
+
+# fspx config
+fspx_docstring_character = "!*>|" # default sequence
+fspx_docstring_character = ">*@#" # custom sequence
 
 
 # -- Options for HTML output -------------------------------------------------
