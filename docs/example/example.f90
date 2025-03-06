@@ -1,9 +1,14 @@
+!@ Preceding documentation for the module.
+!# Preceding documentation for the module with alternate marker
+!#
 module mod_example
     !> mod_example docstrings
     !> still some documentation
     !>
     !> yet more lines
     !> \( ax^2 + bx + c = 0 \)
+    !*
+    !* Documentation with alternate marker
     implicit none
     private
 
@@ -22,6 +27,8 @@ public :: A
 
 contains
 
+!@ Preceding documentation for print
+!@
 subroutine print(this)
     !> Docstring
     class(my_type), intent(in) :: this
@@ -30,6 +37,8 @@ end subroutine
 
 pure elemental function f1(x)result(r)
     !> f1 docstring.
+
+    !# Preceding documentation for x.
     real, intent(in) :: x !> arg for f1
     real :: r
 end function
@@ -37,6 +46,7 @@ end function
 real function f2(x, y)
     !> f2 dosctring.
     !> Test with one optional argument.
+
     real, intent(in) :: x          !> arg for f2
     real, intent(in), optional ::y !> Optional arg
 end function

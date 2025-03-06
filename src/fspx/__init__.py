@@ -7,7 +7,7 @@ def setup(app):
     Registers the AutoFortranDirective for automatically documenting Fortran code.
     """
     app.add_directive("autofortran", AutoFortranDirective)
-    app.add_config_value("fspx_docstring_character", "!>", "!>")
+    app.add_config_value("fspx_docstring_character", "", "")
 
     return {
         'version': '0.1.0',

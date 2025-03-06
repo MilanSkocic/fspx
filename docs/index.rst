@@ -14,4 +14,5 @@ A minimal sphinx extension to create documentation for Fortran codes.
    :caption: Contents:
 
    api/index
+   conf/index
    example/index
