@@ -7,7 +7,6 @@ from ford.sourceform import FortranSourceFile, FortranSubroutine, FortranFunctio
 def get_fargs(f: FortranFunction | FortranSubroutine):
     r"""Return the description of the arguments."""
     args = {}
-    f.attribs
     for i in f.args:
         args[i.name] = {"description": "\n".join(i.doc_list), "attributes": i.full_declaration}
         if i.parameter:
@@ -59,6 +58,15 @@ def get_type_procedures(item: FortranType):
         procedures.append(d)
     return procedures
 
+def get_mod_parameters(item: FortranModule):
+    r"""Return the parameters of a module."""
+    parameters = {}
+    for i in item.variables:
+        if i.parameter:
+            parameters[i.name] = {"description": "\n".join(i.doc_list), "attributes": i.full_declaration, "value": i.initial, "permission": i.permission}
+    return parameters
+
+
 def parse_fortran_file(file_path, docmarker:str="!*>|"):
     r"""Parse Fortran code."""
      
@@ -77,6 +85,7 @@ def parse_fortran_file(file_path, docmarker:str="!*>|"):
 
     fortran_data = {
         'modules': [],
+        'parameters': [],
         'submodules': [],
         'subroutines': [],
         'functions': [],
@@ -87,9 +96,12 @@ def parse_fortran_file(file_path, docmarker:str="!*>|"):
             fortran_data["modules"].append(
                 {"name": i.name,
                  "doc": get_doc(i),
-                 "permission": i.permission
+                 "permission": i.permission,
                 }
             )
+            parameters = get_mod_parameters(i)
+            if parameters: 
+                fortran_data["parameters"].append(parameters)
 
         if isinstance(i, FortranSubmodule):
             fortran_data["submodules"].append({

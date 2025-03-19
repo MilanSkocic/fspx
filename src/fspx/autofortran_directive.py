@@ -54,6 +54,11 @@ class AutoFortranDirective(Directive):
                     parent=submod['parent']
                 )
 
+        # Module Parameters
+        if fortran_data["parameters"]:
+            for param in fortran_data["parameters"]:
+                section_node += self.create_signature("Parameters", "", "", parameters=fortran_data["parameters"])
+
         # Document derived types
         if fortran_data['types']:
             for derived_type in fortran_data['types']:
@@ -97,7 +102,8 @@ class AutoFortranDirective(Directive):
                          members=None, 
                          procedures=None, 
                          attributes=None,
-                         parent=None
+                         parent=None,
+                         parameters=None
                          ):
         """
         Create a styled signature for subroutines, functions, and types.
@@ -131,13 +137,25 @@ class AutoFortranDirective(Directive):
         desc += sig
 
         # Content (body)
-        if docstring or args or result or members or procedures:
+        if docstring or args or result or members or procedures or parameters:
             content = addnodes.desc_content()
 
             # Add the docstring as the body content if present
             if docstring:
                 for line in docstring.split("\n"):
                     content += nodes.paragraph(text=line)
+            
+            if parameters:
+                param_list = nodes.definition_list()
+                for parameter in parameters:
+                    for param_name, param_info in parameter.items():
+                        if param_info["permission"].lower() == "public":
+                            term = nodes.term(text=f"{param_name}: {param_info['attributes']} = {param_info["value"]}")
+                            definition = nodes.definition()
+                            definition += nodes.paragraph(text=param_info['description'])
+                            item = nodes.definition_list_item('', term, definition)
+                            param_list += item
+                    content += param_list
 
             # Add argument descriptions and attributes
             if args:

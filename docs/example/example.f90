@@ -11,6 +11,9 @@ module mod_example
     !* Documentation with alternate marker
     implicit none
     private
+    
+    integer, parameter, public :: X0 = 1389 !> Test parameter
+    integer, parameter :: X1 = 1389 !> Test parameter
 
     type, public :: my_type
         !> my_type docstrings
