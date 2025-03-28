@@ -118,6 +118,11 @@ class AutoFortranDirective(Directive):
         attr_text = f"{attributes} " if attributes else ""
         parent_text = f"({parent}) " if parent else "" # parent module for submodules
         sig += addnodes.desc_name(text=f"{attr_text}{element_type} {parent_text}{name}")
+        
+        private = False
+        if "private" in self.options.keys():
+            if self.options["private"] is None:
+                private = True
 
         # Handle arguments within parentheses
         if args:
@@ -149,7 +154,7 @@ class AutoFortranDirective(Directive):
                 param_list = nodes.definition_list()
                 for parameter in parameters:
                     for param_name, param_info in parameter.items():
-                        if param_info["permission"].lower() == "public":
+                        if (param_info["permission"].lower() == "public") or private:
                             term = nodes.term(text=f"{param_name}: {param_info['attributes']} = {param_info["value"]}")
                             definition = nodes.definition()
                             definition += nodes.paragraph(text=param_info['description'])
