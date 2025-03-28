@@ -12,8 +12,8 @@ module mod_example
     implicit none
     private
     
-    integer, parameter, public :: X0 = 1389 !> Test parameter
-    integer, parameter :: X1 = 1389 !> Test parameter
+    integer, parameter, public :: X0 = 0 !> docstring fro X0
+    integer, parameter :: X1 = 1 !> docstring for X1
 
     type, public :: my_type
         !> my_type docstrings
