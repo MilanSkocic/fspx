@@ -155,7 +155,7 @@ class AutoFortranDirective(Directive):
                 for parameter in parameters:
                     for param_name, param_info in parameter.items():
                         if (param_info["permission"].lower() == "public") or private:
-                            term = nodes.term(text=f"{param_name}: {param_info['attributes']} = {param_info["value"]}")
+                            term = nodes.term(text=f"{param_name}: {param_info['attributes']} = {param_info['value']}")
                             definition = nodes.definition()
                             definition += nodes.paragraph(text=param_info['description'])
                             item = nodes.definition_list_item('', term, definition)
