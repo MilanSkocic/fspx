@@ -1,5 +1,7 @@
 from .autofortran_directive import AutoFortranDirective
 
+from .domains.fortran import FortranDomain
+
 def setup(app):
     """
     Sphinx extension entry point for fspx.
